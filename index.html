@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Solidaria</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #fdfdfd;
+            color: #333;
+        }
+        h1, h2, h3 {
+            margin: 10px 0;
+        }
+        .descripcion {
+            margin: 20px auto;
+            max-width: 600px;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+        .premios {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .premios p {
+            font-size: 16px;
+        }
+        .numero { 
+            display: inline-block; 
+            margin: 5px; 
+            padding: 10px; 
+            border: 1px solid #333; 
+            width: 40px; 
+            cursor: pointer;
+        }
+        .reservado { 
+            background-color: #f88; 
+            color: white; 
+            pointer-events: none; 
+        }
+        form {
+            margin-top: 20px;
+            display: none;
+        }
+        label, input {
+            display: block;
+            margin: 10px auto;
+            width: 80%;
+            max-width: 300px;
+        }
+        button {
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .pago-container {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #333;
+            background-color: #f8f9fa;
+        }
+        .pago-container p {
+            margin: 10px 0;
+        }
+        .pago-container span {
+            font-weight: bold;
+            color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rifa Solidaria</h1>
+    <h2>Para ayudar a mi mamá que necesita ser intervenida quirúrgicamente</h2>
+    <div class="descripcion">
+        ¡Tu participación puede hacer la diferencia! Ayudemos entre todos a cubrir los gastos necesarios.  
+    </div>
+    <div class="premios">
+        <h3>Premios</h3>
+        <p>🏆 <strong>1° Premio:</strong> Caja Navideña</p>
+        <p>💵 <strong>2° Premio:</strong> $15.000</p>
+        <p><strong>Valor de la rifa:</strong> $2000</p> 
+        <p>📅 <strong>Fecha del Sorteo:</strong> Lunes 23 de diciembre. Tombola Nocturna</p>
+        
+    </div>
+    <p>Selecciona un número para participar:</p>
+    <div id="numeros-container"></div>
+
+    <!-- Formulario para datos -->
+    <form id="formulario">
+        <h3>Reserva el número: <span id="numero-seleccionado"></span></h3>
+        <label for="nombre">Nombre completo:</label>
+        <input type="text" id="nombre" placeholder="Escribe tu nombre" required>
+        <label for="telefono">Número de celular:</label>
+        <input type="tel" id="telefono" placeholder="Escribe tu número" required>
+        <button type="submit">Confirmar Reserva</button>
+    </form>
+
+    <!-- Sección de pago -->
+    <div id="pago" class="pago-container">
+        <h3>Opciones de Pago</h3>
+        <p>Para realizar el pago, utiliza alguna de las siguientes opciones:</p>
+        <p>📲 <strong>CBU:</strong> <span>0000003100018402261635 (Marcela Lopez)</span></p>
+        <p>🔗 <strong>Alias:</strong> <span>marcela.193.deseo.mp</span></p>
+        <p>💵 También puedes pagar en efectivo. Contactar a Marcela</p>
+        <button onclick="cerrarPago()">Cerrar</button>
+    </div>
+
+    <!-- Agregar Firebase SDK -->
+    <script type="module">
+        // Importa las funciones necesarias de Firebase y Firestore
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCN2cHtM-djvhQBwNGxCYSbMKoTPpSIdtM",
+            authDomain: "rifa-solidaria-71f74.firebaseapp.com",
+            projectId: "rifa-solidaria-71f74",
+            storageBucket: "rifa-solidaria-71f74.firebasestorage.app",
+            messagingSenderId: "53360300981",
+            appId: "1:53360300981:web:484a1e3dd54e5f20a0fffc",
+            measurementId: "G-YQFDCF2WEH"
+        };
+
+        // Inicializa Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const totalNumeros = 100; // Cantidad de números disponibles
+        const container = document.getElementById("numeros-container");
+        const formulario = document.getElementById("formulario");
+        const numeroSeleccionado = document.getElementById("numero-seleccionado");
+        const pagoContainer = document.getElementById("pago");
+        let numeroActual = null;
+
+        // Generar los números
+        for (let i = 1; i <= totalNumeros; i++) {
+            const div = document.createElement("div");
+            div.classList.add("numero");
+            div.textContent = i;
+            div.addEventListener("click", () => seleccionarNumero(div));
+            container.appendChild(div);
+        }
+
+        // Seleccionar un número
+        function seleccionarNumero(elemento) {
+            if (elemento.classList.contains("reservado")) return; // No permite seleccionar números ya reservados
+            numeroActual = elemento;
+            numeroSeleccionado.textContent = elemento.textContent;
+            formulario.style.display = "block";
+        }
+
+        // Confirmar reserva
+        formulario.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById("nombre").value;
+            const telefono = document.getElementById("telefono").value;
+
+            if (nombre && telefono) {
+                guardarDatos(nombre, telefono, numeroActual.textContent);
+                alert(`¡Número ${numeroActual.textContent} reservado por ${nombre}, Telefono: (${telefono})!`);
+                numeroActual.classList.add("reservado");
+                formulario.reset();
+                formulario.style.display = "none";
+                mostrarPago();
+            }
+        });
+
+        // Función para guardar los datos en Firestore
+        function guardarDatos(nombre, telefono, numeroSeleccionado) {
+            try {
+                // Guarda los datos en la colección "participantes"
+                const docRef = addDoc(collection(db, "participantes"), {
+                    nombre: nombre,
+                    telefono: telefono,
+                    numero: numeroSeleccionado
+                });
+                console.log("Documento escrito con ID: ", docRef.id);
+            } catch (e) {
+                console.error("Error al agregar el documento: ", e);
+            }
+        }
+
+        // Mostrar sección de pago
+        function mostrarPago() {
+            pagoContainer.style.display = "block";
+        }
+
+        // Cerrar sección de pago
+        function cerrarPago() {
+            pagoContainer.style.display = "none";
+        }
+    </script>
+</body>
+</html>
